@@ -1,0 +1,235 @@
+NOTATION
+---------------------------------------------------------------------
+r, r1, r2   = register (A, B, C, D, E, H, L)
+M           = memory location whose address is in the HL pair
+rp          = register pair (BC, DE, HL, SP)
+d8          = 8-bit data (1 byte)
+d16         = 16-bit data (2 bytes, low byte first)
+addr        = 16-bit memory address (low byte first)
+(X)         = contents of X
+[X]         = memory at address X
+<-          = "is loaded with"
+
+REGISTER CODES (used inside opcodes)
+---------------------------------------------------------------------
+M = 110   A = 111
+B = 000   C = 001   
+D = 010   E = 011
+H = 100   L = 101   
+
+FLAGS
+---------------------------------------------------------------------
+S  = Sign            Z  = Zero           AC = Auxiliary Carry
+P  = Parity          CY = Carry
+
+
+=====================================================================
+DATA TRANSFER INSTRUCTIONS
+=====================================================================
+These copy data between registers, memory, and register pairs.
+None of them change any flags.
+
+MOV r1, r2        Opcode: 01 DDD SSS (example: MOV A,B = 78)   Bytes: 1
+    Meaning : Copy the contents of r2 into r1. r2 is unchanged.
+    Action  : (r1) <- (r2)
+    Example : MOV A, B     ; if B = 05, then A becomes 05
+
+MOV r, M          Opcode: 01 DDD 110 (example: MOV A,M = 7E)   Bytes: 1
+    Meaning : Copy the byte at the memory address held in HL into r.
+    Action  : (r) <- [HL]
+    Example : MOV A, M     ; if HL = 2000 and [2000] = 4F, A becomes 4F
+
+MOV M, r          Opcode: 01 110 SSS (example: MOV M,A = 77)   Bytes: 1
+    Meaning : Copy r into the memory address held in HL.
+    Action  : [HL] <- (r)
+    Example : MOV M, A     ; stores A at the address in HL
+
+MVI r, d8         Opcode: 00 DDD 110 (example: MVI A = 3E)     Bytes: 2
+    Meaning : Load an 8-bit constant directly into register r.
+    Action  : (r) <- d8
+    Example : MVI A, 05    ; A becomes 05
+
+MVI M, d8         Opcode: 36                                   Bytes: 2
+    Meaning : Load an 8-bit constant into the memory address held in HL.
+    Action  : [HL] <- d8
+    Example : MVI M, 7F    ; [HL] becomes 7F
+
+LXI rp, d16       Opcode: 01 (BC), 11 (DE), 21 (HL), 31 (SP)   Bytes: 3
+    Meaning : Load a 16-bit constant into a register pair.
+              The low byte goes to the second register of the pair.
+    Action  : (rp) <- d16
+    Example : LXI H, 2050  ; H = 20, L = 50
+
+LDA addr          Opcode: 3A                                   Bytes: 3
+    Meaning : Load the accumulator from a memory address.
+    Action  : (A) <- [addr]
+    Example : LDA 2050     ; A gets the byte stored at 2050
+
+STA addr          Opcode: 32                                   Bytes: 3
+    Meaning : Store the accumulator into a memory address.
+    Action  : [addr] <- (A)
+    Example : STA 2051     ; the byte at 2051 becomes A
+
+LHLD addr         Opcode: 2A                                   Bytes: 3
+    Meaning : Load HL directly from memory. L gets the byte at addr,
+              H gets the byte at addr + 1.
+    Action  : (L) <- [addr], (H) <- [addr + 1]
+    Example : LHLD 2050
+
+SHLD addr         Opcode: 22                                   Bytes: 3
+    Meaning : Store HL directly into memory. L goes to addr,
+              H goes to addr + 1.
+    Action  : [addr] <- (L), [addr + 1] <- (H)
+    Example : SHLD 2050
+
+LDAX rp           Opcode: 0A (BC), 1A (DE)                     Bytes: 1
+    Meaning : Load the accumulator from the address held in BC or DE.
+              Only BC and DE are allowed.
+    Action  : (A) <- [rp]
+    Example : LDAX B       ; A gets the byte at the address in BC
+
+STAX rp           Opcode: 02 (BC), 12 (DE)                     Bytes: 1
+    Meaning : Store the accumulator at the address held in BC or DE.
+              Only BC and DE are allowed.
+    Action  : [rp] <- (A)
+    Example : STAX D       ; stores A at the address in DE
+
+XCHG              Opcode: EB                                   Bytes: 1
+    Meaning : Swap the contents of HL with DE.
+    Action  : (H) <-> (D), (L) <-> (E)
+    Example : XCHG         ; HL = 2050, DE = 3060 becomes HL = 3060, DE = 2050
+
+
+=====================================================================
+ARITHMETIC INSTRUCTIONS
+=====================================================================
+The accumulator (A) is the destination for most 8-bit arithmetic.
+
+---------------------------------------------------------------------
+ADDITION
+---------------------------------------------------------------------
+ADD r             Opcode: 10 000 SSS (ADD B = 80, ADD C = 81,
+                          ADD D = 82, ADD E = 83, ADD H = 84,
+                          ADD L = 85, ADD A = 87)              Bytes: 1
+    Meaning : Add register r to the accumulator.
+    Action  : (A) <- (A) + (r)
+    Flags   : S, Z, AC, P, CY all affected
+    Example : ADD B        ; A = 05, B = 0A, result A = 0F
+
+ADD M             Opcode: 86                                   Bytes: 1
+    Meaning : Add the memory byte at the address in HL to A.
+    Action  : (A) <- (A) + [HL]
+    Flags   : S, Z, AC, P, CY all affected
+
+ADI d8            Opcode: C6                                   Bytes: 2
+    Meaning : Add an 8-bit constant to the accumulator.
+    Action  : (A) <- (A) + d8
+    Flags   : S, Z, AC, P, CY all affected
+    Example : ADI 05
+
+ADC r             Opcode: 10 001 SSS (ADC B = 88, ADC C = 89,
+                          ADC D = 8A, ADC E = 8B, ADC H = 8C,
+                          ADC L = 8D, ADC A = 8F)              Bytes: 1
+    Meaning : Add register r plus the carry flag to the accumulator.
+              Used for multi-byte addition.
+    Action  : (A) <- (A) + (r) + (CY)
+    Flags   : S, Z, AC, P, CY all affected
+
+ADC M             Opcode: 8E                                   Bytes: 1
+    Meaning : Add the memory byte at HL plus carry to A.
+    Action  : (A) <- (A) + [HL] + (CY)
+    Flags   : S, Z, AC, P, CY all affected
+
+ACI d8            Opcode: CE                                   Bytes: 2
+    Meaning : Add an 8-bit constant plus carry to the accumulator.
+    Action  : (A) <- (A) + d8 + (CY)
+    Flags   : S, Z, AC, P, CY all affected
+
+DAD rp            Opcode: 09 (BC), 19 (DE), 29 (HL), 39 (SP)   Bytes: 1
+    Meaning : Add a 16-bit register pair to HL.
+    Action  : (HL) <- (HL) + (rp)
+    Flags   : Only CY is affected
+    Example : DAD B        ; HL = HL + BC
+
+---------------------------------------------------------------------
+SUBTRACTION
+---------------------------------------------------------------------
+SUB r             Opcode: 10 010 SSS (SUB B = 90, SUB C = 91,
+                          SUB D = 92, SUB E = 93, SUB H = 94,
+                          SUB L = 95, SUB A = 97)              Bytes: 1
+    Meaning : Subtract register r from the accumulator.
+    Action  : (A) <- (A) - (r)
+    Flags   : S, Z, AC, P, CY all affected
+              CY = 1 means a borrow occurred (result is negative,
+              shown in 2's complement)
+    Example : SUB B        ; A = 0F, B = 05, result A = 0A
+
+SUB M             Opcode: 96                                   Bytes: 1
+    Meaning : Subtract the memory byte at HL from A.
+    Action  : (A) <- (A) - [HL]
+    Flags   : S, Z, AC, P, CY all affected
+
+SUI d8            Opcode: D6                                   Bytes: 2
+    Meaning : Subtract an 8-bit constant from the accumulator.
+    Action  : (A) <- (A) - d8
+    Flags   : S, Z, AC, P, CY all affected
+
+SBB r             Opcode: 10 011 SSS (SBB B = 98, SBB C = 99,
+                          SBB D = 9A, SBB E = 9B, SBB H = 9C,
+                          SBB L = 9D, SBB A = 9F)              Bytes: 1
+    Meaning : Subtract register r and the borrow (carry flag) from A.
+              Used for multi-byte subtraction.
+    Action  : (A) <- (A) - (r) - (CY)
+    Flags   : S, Z, AC, P, CY all affected
+
+SBB M             Opcode: 9E                                   Bytes: 1
+    Meaning : Subtract the memory byte at HL and the borrow from A.
+    Action  : (A) <- (A) - [HL] - (CY)
+    Flags   : S, Z, AC, P, CY all affected
+
+SBI d8            Opcode: DE                                   Bytes: 2
+    Meaning : Subtract an 8-bit constant and the borrow from A.
+    Action  : (A) <- (A) - d8 - (CY)
+    Flags   : S, Z, AC, P, CY all affected
+
+---------------------------------------------------------------------
+INCREMENT AND DECREMENT
+---------------------------------------------------------------------
+INR r             Opcode: 00 DDD 100 (INR B = 04, INR C = 0C,
+                          INR D = 14, INR E = 1C, INR H = 24,
+                          INR L = 2C, INR A = 3C)              Bytes: 1
+    Meaning : Add 1 to register r.
+    Action  : (r) <- (r) + 1
+    Flags   : S, Z, AC, P affected. CY is NOT affected.
+    Example : INR B        ; B = 09 becomes 0A
+
+INR M             Opcode: 34                                   Bytes: 1
+    Meaning : Add 1 to the memory byte at the address in HL.
+    Action  : [HL] <- [HL] + 1
+    Flags   : S, Z, AC, P affected. CY is NOT affected.
+
+DCR r             Opcode: 00 DDD 101 (DCR B = 05, DCR C = 0D,
+                          DCR D = 15, DCR E = 1D, DCR H = 25,
+                          DCR L = 2D, DCR A = 3D)              Bytes: 1
+    Meaning : Subtract 1 from register r.
+              Often used as a loop counter with JNZ.
+    Action  : (r) <- (r) - 1
+    Flags   : S, Z, AC, P affected. CY is NOT affected.
+    Example : DCR C        ; C = 01 becomes 00 and Z flag is set
+
+DCR M             Opcode: 35                                   Bytes: 1
+    Meaning : Subtract 1 from the memory byte at the address in HL.
+    Action  : [HL] <- [HL] - 1
+    Flags   : S, Z, AC, P affected. CY is NOT affected.
+
+INX rp            Opcode: 03 (BC), 13 (DE), 23 (HL), 33 (SP)   Bytes: 1
+    Meaning : Add 1 to a 16-bit register pair.
+    Action  : (rp) <- (rp) + 1
+    Flags   : No flags affected
+    Example : INX H        ; HL = 20FF becomes 2100
+
+DCX rp            Opcode: 0B (BC), 1B (DE), 2B (HL), 3B (SP)   Bytes: 1
+    Meaning : Subtract 1 from a 16-bit register pair.
+    Action  : (rp) <- (rp) - 1
+    Flags   : No flags affected
+    Example : DCX B        ; BC = 0100 becomes 00FF

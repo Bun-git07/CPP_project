@@ -1,0 +1,36 @@
+0|MOV|MOV r1, r2|1|Copy the contents of r2 into r1. r2 is unchanged.|(r1) <- (r2)|None|MOV A, B     ; if B = 05, then A becomes 05
+0|MOV|MOV r, M|1|Copy the byte at the memory address held in HL into r.|(r) <- [HL]|None|MOV A, M     ; if HL = 2000 and [2000] = 4F, A becomes 4F
+0|MOV|MOV M, r|1|Copy r into the memory address held in HL.|[HL] <- (r)|None|MOV M, A     ; stores A at the address in HL
+0|MVI|MVI r, d8|2|Load an 8-bit constant directly into register r.|(r) <- d8|None|MVI A, 05    ; A becomes 05
+0|MVI|MVI M, d8|2|Load an 8-bit constant into the memory address held in HL.|[HL] <- d8|None|MVI M, 7F    ; [HL] becomes 7F
+0|LXI|LXI rp, d16|3|Load a 16-bit constant into a register pair. The low byte goes to the second register of the pair.|(rp) <- d16|None|LXI H, 2050  ; H = 20, L = 50
+0|LDA|LDA addr|3|Load the accumulator from a memory address.|(A) <- [addr]|None|LDA 2050     ; A gets the byte stored at 2050
+0|STA|STA addr|3|Store the accumulator into a memory address.|[addr] <- (A)|None|STA 2051     ; the byte at 2051 becomes A
+0|LHLD|LHLD addr|3|Load HL directly from memory. L gets the byte at addr, H gets the byte at addr + 1.|(L) <- [addr], (H) <- [addr + 1]|None|LHLD 2050
+0|SHLD|SHLD addr|3|Store HL directly into memory. L goes to addr, H goes to addr + 1.|[addr] <- (L), [addr + 1] <- (H)|None|SHLD 2050
+0|LDAX|LDAX rp|1|Load the accumulator from the address held in BC or DE. Only BC and DE are allowed.|(A) <- [rp]|None|LDAX B       ; A gets the byte at the address in BC
+0|STAX|STAX rp|1|Store the accumulator at the address held in BC or DE. Only BC and DE are allowed.|[rp] <- (A)|None|STAX D       ; stores A at the address in DE
+0|XCHG|XCHG|1|Swap the contents of HL with DE.|(H) <-> (D), (L) <-> (E)|None|XCHG         ; HL = 2050, DE = 3060 becomes HL = 3060, DE = 2050
+1|ADD|ADD r|1|Add register r to the accumulator.|(A) <- (A) + (r)|S, Z, AC, P, CY all affected|ADD B        ; A = 05, B = 0A, result A = 0F
+1|ADD|ADD M|1|Add the memory byte at the address in HL to A.|(A) <- (A) + [HL]|S, Z, AC, P, CY all affected|
+1|ADI|ADI d8|2|Add an 8-bit constant to the accumulator.|(A) <- (A) + d8|S, Z, AC, P, CY all affected|ADI 05
+1|ADC|ADC r|1|Add register r plus the carry flag to the accumulator. Used for multi-byte addition.|(A) <- (A) + (r) + (CY)|S, Z, AC, P, CY all affected|
+1|ADC|ADC M|1|Add the memory byte at HL plus carry to A.|(A) <- (A) + [HL] + (CY)|S, Z, AC, P, CY all affected|
+1|ACI|ACI d8|2|Add an 8-bit constant plus carry to the accumulator.|(A) <- (A) + d8 + (CY)|S, Z, AC, P, CY all affected|
+1|DAD|DAD rp|1|Add a 16-bit register pair to HL.|(HL) <- (HL) + (rp)|Only CY is affected|DAD B        ; HL = HL + BC
+1|SUB|SUB r|1|Subtract register r from the accumulator. CY = 1 means a borrow occurred (result is negative, shown in 2's complement)|(A) <- (A) - (r)|S, Z, AC, P, CY all affected|SUB B        ; A = 0F, B = 05, result A = 0A
+1|SUB|SUB M|1|Subtract the memory byte at HL from A.|(A) <- (A) - [HL]|S, Z, AC, P, CY all affected|
+1|SUI|SUI d8|2|Subtract an 8-bit constant from the accumulator.|(A) <- (A) - d8|S, Z, AC, P, CY all affected|
+1|SBB|SBB r|1|Subtract register r and the borrow (carry flag) from A. Used for multi-byte subtraction.|(A) <- (A) - (r) - (CY)|S, Z, AC, P, CY all affected|
+1|SBB|SBB M|1|Subtract the memory byte at HL and the borrow from A.|(A) <- (A) - [HL] - (CY)|S, Z, AC, P, CY all affected|
+1|SBI|SBI d8|2|Subtract an 8-bit constant and the borrow from A.|(A) <- (A) - d8 - (CY)|S, Z, AC, P, CY all affected|
+1|INR|INR r|1|Add 1 to register r.|(r) <- (r) + 1|S, Z, AC, P affected. CY is NOT affected.|INR B        ; B = 09 becomes 0A
+1|INR|INR M|1|Add 1 to the memory byte at the address in HL.|[HL] <- [HL] + 1|S, Z, AC, P affected. CY is NOT affected.|
+1|DCR|DCR r|1|Subtract 1 from register r. Often used as a loop counter with JNZ.|(r) <- (r) - 1|S, Z, AC, P affected. CY is NOT affected.|DCR C        ; C = 01 becomes 00 and Z flag is set
+1|DCR|DCR M|1|Subtract 1 from the memory byte at the address in HL.|[HL] <- [HL] - 1|S, Z, AC, P affected. CY is NOT affected.|
+1|INX|INX rp|1|Add 1 to a 16-bit register pair.|(rp) <- (rp) + 1|No flags affected|INX H        ; HL = 20FF becomes 2100
+1|DCX|DCX rp|1|Subtract 1 from a 16-bit register pair.|(rp) <- (rp) - 1|No flags affected|DCX B        ; BC = 0100 becomes 00FF
+2|ANA|ANA|1|Logical AND register with Accumulator.||None|ANA B
+2|ORA|ORA|1|Logical OR register with Accumulator.||None|ORA B
+3|JMP|JMP|1|Unconditional jump to 16-bit memory address.||None|JMP 2000H
+4|HLT|HLT|1|Stops processor execution.||None|HLT

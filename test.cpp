@@ -31,7 +31,7 @@ int main(){
         }
     }
 
-    if(found == nullptr){
+    if(found == nullptr){                                   
         cout << "No instruction found." << endl;
     } else{
         cout << target << " found in " << category_names[found_in] << endl;
